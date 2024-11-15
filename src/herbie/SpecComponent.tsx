@@ -162,11 +162,6 @@ function SpecConfigComponent() {
     setSpecTextInput(event.target.value);
   }
 
-  const handleRangesUpdate = (value: { ranges: { [key: string]: InputRange } }) => {
-    setMySpecRanges(Object.entries(value.ranges).map(([variable, range], id) => new SpecRange(variable, parseFloat(range.lower), parseFloat(range.upper))))
-    // setSpec(new Spec(spec.expression, /*Object.entries(value.ranges).map(([variable, range], id) => new SpecRange(variable, parseFloat(range.lower), parseFloat(range.upper))),*/ spec.id));
-  }
-
   const [htmlContent, setHtmlContent] = useState('')
   useEffect(() => {
     async function getResult() {
@@ -286,6 +281,16 @@ function SpecConfigComponent() {
       onChange={handleSpecTextUpdate}
     />
   );
+
+  // make sure the ranges get initialized; works because useEffect runs *after* render
+  useEffect(() => {
+    const vars = variables;
+    const newRanges = vars.map((v) => {
+      const range = mySpecRanges.find((r) => r.variable === v) || new HerbieTypes.SpecRange(v, -1e308, 1e308);
+      return range;
+    });
+    setMySpecRanges(newRanges);
+  }, [variables]);
 
   return (
     <div className="spec-page">

@@ -165,7 +165,7 @@ function ExpressionTable() {
   //   return <div className="expression-table">Waiting for sampling...</div>
   // }
   const sample = samples.find((sample) => sample.id === selectedSampleId)
-  
+
   const handleAddExpression = async () => {
     validateExpression(addExpression);
     const selectedId = nextId(expressions);
@@ -182,13 +182,33 @@ function ExpressionTable() {
     setSelectedExprId(selectedId)
     setCompareExprIds([...compareExprIds, selectedId])
     setAddExpression('')
+    
+    fetch('http://localhost:8003/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: sessionStorage.getItem('sessionId'),
+        expression: addExpression,
+        timestamp: new Date().toLocaleString(),
+      }),
+    })
+    .then(response => {
+      if (response.ok) {
+        console.log('Server is running and log saved');
+      }
+      else {
+        console.error('Server responded with an error:', response.status);
+      }
+    })
+    .catch(error => console.error('Request failed:', error));
   }
 
   const handleAddExpressionChange = async (expression: string) => {
+    expression = expression.trim();
     setAddExpression(expression);
     try {
       validateExpression(expression);
-      const tex = expression.trim() === '' ? '' 
+      const tex = expression === '' ? ''
         : KaTeX.renderToString(await expressionToTex(expression, fpcore.getVarnamesMathJS(expression).length, serverUrl), { throwOnError: false });
       setAddExpressionTex(tex);
     } catch (e) {
@@ -229,10 +249,10 @@ function ExpressionTable() {
       newDerivations.push(newDerivation);
     }
 
-    
+
     const path = suggested.path;
     setAlternativesJobResponse({ expressionId: newExpressions.map(expression => expression.id), path: path });
-    
+
     setExpressions([...newExpressions, ...expressions]);
     setDerivations([...newDerivations, ...derivations]);
     setCompareExprIds([...compareExprIds, ...newExpressions.map(e => e.id)]);
@@ -266,12 +286,12 @@ function ExpressionTable() {
 
         </div>
       </div>
-      
+
         <div className="expressions-actual">
           {activeExpressions.map((id) => {
             const expression = expressions.find((expression) => expression.id === id) as Expression;
             const isChecked = compareExprIds.includes(expression.id);
-            const analysisData = analyses.find((analysis) => analysis.expressionId === expression.id)?.data;  
+            const analysisData = analyses.find((analysis) => analysis.expressionId === expression.id)?.data;
             const analysisResult =
               !analysisData
                 ? undefined
@@ -296,7 +316,7 @@ function ExpressionTable() {
                   {/* expand button [+] */}
                   <div className="expand action">
                     <div onClick={() => handleExpandClick(expression.id)}>
-                      {expandedExpressions.includes(expression.id) ? 
+                      {expandedExpressions.includes(expression.id) ?
                         <svg style={{ width: '15px', stroke: "var(--action-color)" }} viewBox="0 0 24 24" transform="rotate(180)" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M6 9L12 15L18 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
                         : <svg style={{ width: '15px', stroke: "var(--action-color)" }} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M6 9L12 15L18 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>}
                     </div>
@@ -314,7 +334,7 @@ function ExpressionTable() {
                           overflowY: 'hidden',
                     }}/>
                     :
-                    <div className="expression-text"  >
+                    <div className="expression-text" id={`` + expression.id}>
                       {expression.text}
                     </div>
                     }
@@ -322,27 +342,27 @@ function ExpressionTable() {
                         <a className="copy-anchor">⧉</a>
                       </div>
                     </div>
-                  <div className="analysis">
+                  <div className="analysis" id={`` + expression.id}>
                     {/* TODO: Not To hardcode number of bits*/}
                     {analysisResult ? (100 - (parseFloat(analysisResult)/64)*100).toFixed(1) + "%" : "..."}
                   </div>
-                  <div className="speedup">
+                  <div className="speedup" id={`` + expression.id}>
                     {naiveCost && costResult ? (naiveCost / costResult).toFixed(1) + "x" : "..."}
                   </div>
                   <div className="herbie">
-                    <button disabled={jobCount > 0} onClick={() => handleImprove(expression)}>
+                    <button disabled={jobCount > 0} onClick={() => handleImprove(expression)} className={"herbie-button"} id={`` + expression.id}>
                       Improve
                     </button>
                   </div>
 
 
                   <div className="delete">
-                    <button onClick={() =>{ 
+                    <button onClick={() =>{
                       setArchivedExpressions([...archivedExpressions, expression.id]);
                       const activeExp = activeExpressions.filter(id => id !== expression.id);
                       if (activeExp.length > 0) {
                         setSelectedExprId(activeExp[0]);
-                      } 
+                      }
                       }}>
                     ╳
                     </button>
@@ -350,7 +370,7 @@ function ExpressionTable() {
                 </div>
                 {expandedExpressions.includes(expression.id) && (
                   <div className="dropdown" onClick={() => handleExpressionClick(expression.id)}>
-                    
+
                     <SelectableVisualization components={components} />
                   </div>
                 )}
